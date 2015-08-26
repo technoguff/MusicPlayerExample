@@ -23,6 +23,8 @@ public class MusicFileAdapter extends RecyclerView.Adapter<MusicFileAdapter.MyVi
     }
 
 
+    private OnMusicSelectedListener mListener;
+
     @Override
     public MyViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
         LayoutInflater inflater = LayoutInflater.from(viewGroup.getContext());
@@ -57,7 +59,23 @@ public class MusicFileAdapter extends RecyclerView.Adapter<MusicFileAdapter.MyVi
 
             title = (TextView)itemView.findViewById(R.id.songtitle);
             artist = (TextView)itemView.findViewById(R.id.artist);
-
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if(mListener != null){
+                        mListener.onMusicSelected(getAdapterPosition());
+                    }
+                }
+            });
         }
     }
+
+    public void setMusicSelectedListener(OnMusicSelectedListener listneer){
+       mListener = listneer;
+    }
+
+
+   public interface OnMusicSelectedListener {
+       public void onMusicSelected(int position);
+   }
 }

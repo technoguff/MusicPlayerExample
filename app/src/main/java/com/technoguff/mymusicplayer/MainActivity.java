@@ -1,9 +1,13 @@
 package com.technoguff.mymusicplayer;
 
+import android.content.ComponentName;
 import android.content.ContentResolver;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.IBinder;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -15,6 +19,7 @@ import android.view.MenuItem;
 
 import com.technoguff.mymusicplayer.adapter.MusicFileAdapter;
 import com.technoguff.mymusicplayer.model.MusicFile;
+import com.technoguff.mymusicplayer.service.MusicService;
 
 import java.util.ArrayList;
 
@@ -27,6 +32,8 @@ public class MainActivity extends AppCompatActivity {
     RecyclerView recyclerView;
 
     ArrayList<MusicFile> musicFileLists;
+    Intent serviceIntent;
+    MusicService musicService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,7 +84,15 @@ public class MainActivity extends AppCompatActivity {
        @Override
        protected void onPostExecute(Void aVoid) {
            super.onPostExecute(aVoid);
-           recyclerView.setAdapter(new MusicFileAdapter(musicFileLists));
+
+          MusicFileAdapter adapter =  new MusicFileAdapter(musicFileLists);
+           adapter.setMusicSelectedListener(new MusicFileAdapter.OnMusicSelectedListener() {
+               @Override
+               public void onMusicSelected(int position) {
+                   musicService.playMusic(position);
+               }
+           });
+           recyclerView.setAdapter(adapter);
        }
    }
 
@@ -88,7 +103,6 @@ public class MainActivity extends AppCompatActivity {
         ContentResolver musicDataResolver = getContentResolver();
         Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         Cursor cursor = musicDataResolver.query(uri, null, null, null, null);
-
         if(cursor!=null && cursor.moveToFirst()){
             do {
                 int id = cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media._ID));
@@ -100,8 +114,6 @@ public class MainActivity extends AppCompatActivity {
                 music.setTitle(title);
                 music.setArtist(artist);
 
-                Log.e("MUSIC", "TITLE : " + title);
-
                 musicFileLists.add(music);
             }
             while (cursor.moveToNext());
@@ -109,4 +121,30 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
+
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        serviceIntent = new Intent(MainActivity.this, MusicService.class);
+        bindService(serviceIntent, serviceConnection, BIND_AUTO_CREATE);
+        //startService(serviceIntent);
+    }
+
+
+    ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            MusicService.MyMusicBinder binder = (MusicService.MyMusicBinder)iBinder;
+            musicService = binder.getService();
+            musicService.setMusicList(musicFileLists);
+
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+
+        }
+    };
+
 }
